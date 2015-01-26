@@ -35,6 +35,13 @@ main() {
         {'a': 20, 'b': 10},
         {'a': 20, 'b': 20},
       ];
+      scope.context['comparator'] = (a, b) {
+        if (a is bool && b is bool) {
+          if (a == true) return 1;
+          if (a == false) return -1;
+        }
+        return 0;
+      };
     });
 
     it('should pass through null list when input list is null', (Scope scope, Parser parse, FormatterMap formatters) {
@@ -204,6 +211,18 @@ main() {
        (Scope scope, Parser parse, FormatterMap formatters) {
       scope.context['list'] = [false, true, false];
       expect(parse('list | orderBy:"-"').eval(scope.context, formatters)).toEqual([false, true, false]);
+    });
+
+    it('should use a custom comparator if provided',
+        (Scope scope, Parser parse, FormatterMap formatters) {
+      scope.context['list'] = [false, true, false];
+      expect(parse('list | orderBy:"+":false:comparator').eval(scope.context, formatters)).toEqual([false, false, true]);
+    });
+
+    it('should use a custom comparator reverse order',
+        (Scope scope, Parser parse, FormatterMap formatters) {
+      scope.context['list'] = [false, true, false];
+      expect(parse('list | orderBy:"-":false:comparator').eval(scope.context, formatters)).toEqual([true, false, false]);
     });
 
   });

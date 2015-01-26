@@ -1,6 +1,7 @@
 part of angular.formatter_internal;
 
 typedef dynamic _Mapper(dynamic e);
+typedef int CompareTo(Comparable a, Comparable b);
 
 /**
  * Orders the the elements of an [Iterable] using a predicate.
@@ -132,6 +133,7 @@ typedef dynamic _Mapper(dynamic e);
  */
 @Formatter(name: 'orderBy')
 class OrderBy implements Function {
+
   Parser _parser;
 
   OrderBy(this._parser);
@@ -147,6 +149,7 @@ class OrderBy implements Function {
     return 0;
   }
   static int _reverseComparator(a, b) => _defaultComparator(b, a);
+  _newReverseComparator(CompareTo comparator) => (a, b) => comparator(b, a);
 
   static int _compareLists(List a, List b, List<Comparator> comparators) {
     return new Iterable.generate(a.length, (i) => comparators[i](a[i], b[i]))
@@ -172,7 +175,12 @@ class OrderBy implements Function {
    * - `expression`: String/Function or Array of String/Function.
    * - `descending`: When specified, use descending order. (The default is ascending order.)
    */
-  List call(Iterable items, var expression, [bool descending=false]) {
+  List call(Iterable items, var expression, [bool descending=false, CompareTo comparator = null]) {
+    var reverseComparator = _reverseComparator;
+    if (comparator == null)
+      comparator = _defaultComparator;
+    else reverseComparator = _newReverseComparator(comparator);
+
     if (items == null) return null;
     if (items is! List) items = items.toList();
     List expressions = null;
@@ -199,7 +207,7 @@ class OrderBy implements Function {
           desc = strExp.startsWith('-');
           strExp = strExp.substring(1);
         }
-        comparators[i] = desc ? _reverseComparator : _defaultComparator;
+        comparators[i] = desc ? reverseComparator : comparator;
         if (strExp == '') {
           mappers[i] = _nop;
         } else {
@@ -208,7 +216,7 @@ class OrderBy implements Function {
         }
       } else if (expression is _Mapper) {
         mappers[i] = (expression as _Mapper);
-        comparators[i] = _defaultComparator;
+        comparators[i] = comparator;
       }
     }
     return _sorted(items, mappers, comparators, descending);
