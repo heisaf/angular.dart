@@ -219,7 +219,7 @@ main() {
       expect(parse('list | orderBy:"+":false:comparator').eval(scope.context, formatters)).toEqual([false, false, true]);
     });
 
-    it('should use a custom comparator reverse order',
+    it('should use a custom comparator in reverse order',
         (Scope scope, Parser parse, FormatterMap formatters) {
       scope.context['list'] = [false, true, false];
       expect(parse('list | orderBy:"-":false:comparator').eval(scope.context, formatters)).toEqual([true, false, false]);
