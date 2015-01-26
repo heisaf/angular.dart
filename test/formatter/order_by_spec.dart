@@ -200,5 +200,11 @@ main() {
       ]);
     });
 
+    it('should pass through values that are not comparable',
+       (Scope scope, Parser parse, FormatterMap formatters) {
+      scope.context['list'] = [false, true, false];
+      expect(parse('list | orderBy:"-"').eval(scope.context, formatters)).toEqual([false, true, false]);
+    });
+
   });
 }
