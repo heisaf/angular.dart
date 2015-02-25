@@ -1,5 +1,6 @@
 library angular.tools.transformer.relative_uri_generator;
 
+import 'dart:profiler';
 import 'dart:async';
 import 'package:analyzer/src/generated/ast.dart';
 import 'package:analyzer/src/generated/element.dart';
@@ -21,6 +22,7 @@ class TypeRelativeUriGenerator extends Transformer with ResolverTransformer {
   }
 
   void applyResolver(Transform transform, Resolver resolver) {
+    var prevTag = new UserTag('TypeRelativeUriGenerator.applyResolver').makeCurrent();
     var asset = transform.primaryInput;
     var id = asset.id;
     var outputFilename = '${path.url.basenameWithoutExtension(id.path)}'
@@ -80,6 +82,7 @@ class TypeRelativeUriGenerator extends Transformer with ResolverTransformer {
     transform.addOutput(
           new Asset.fromString(outputId, outputBuffer.toString()));
     transform.addOutput(asset);
+    prevTag.makeCurrent();
   }
 }
 

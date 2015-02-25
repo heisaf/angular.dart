@@ -1,5 +1,6 @@
 library angular_transformers.template_cache_generator;
 
+import 'dart:profiler';
 import 'dart:async';
 
 import 'package:angular/tools/transformer/options.dart';
@@ -20,6 +21,7 @@ class TemplateCacheGenerator extends Transformer with ResolverTransformer {
   }
 
   Future applyResolver(Transform transform, Resolver resolver) {
+    var prevTag = new UserTag('TemplateCacheGenerator.applyResolver').makeCurrent();
     if (!options.generateTemplateCache) return new Future.value();
 
     var asset = transform.primaryInput;
@@ -40,6 +42,7 @@ class TemplateCacheGenerator extends Transformer with ResolverTransformer {
       _writeTemplateCacheFooter(outputBuffer);
       transform.addOutput(
           new Asset.fromString(outputId, outputBuffer.toString()));
+      prevTag.makeCurrent();
     });
   }
 

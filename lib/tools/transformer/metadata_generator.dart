@@ -1,5 +1,6 @@
 library angular.tools.transformer.metadata_generator;
 
+import 'dart:profiler';
 import 'package:analyzer/src/generated/element.dart';
 import 'package:angular/tools/transformer/options.dart';
 import 'package:barback/barback.dart';
@@ -16,6 +17,7 @@ class MetadataGenerator extends Transformer with ResolverTransformer {
   }
 
   void applyResolver(Transform transform, Resolver resolver) {
+    var prevTag = new UserTag('MetadataGenerator.applyResolver').makeCurrent();
     var asset = transform.primaryInput;
     var id = asset.id;
     var outputFilename = '${path.url.basenameWithoutExtension(id.path)}_static_metadata.dart';
@@ -61,6 +63,7 @@ class MetadataGenerator extends Transformer with ResolverTransformer {
 
     transform..addOutput(new Asset.fromString(outputId, outputBuffer.toString()))
              ..addOutput(asset);
+    prevTag.makeCurrent();
   }
 }
 

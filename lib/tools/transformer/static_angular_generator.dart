@@ -1,5 +1,6 @@
 library angular.tools.transformer.static_angular_generator;
 
+import 'dart:profiler';
 import 'package:analyzer/src/generated/ast.dart';
 import 'package:analyzer/src/generated/element.dart';
 import 'package:angular/tools/transformer/options.dart';
@@ -16,6 +17,7 @@ class StaticAngularGenerator extends Transformer with ResolverTransformer {
   }
 
   void applyResolver(Transform transform, Resolver resolver) {
+    var prevTag = new UserTag('StaticAngularGenerator.applyResolver').makeCurrent();
     var asset = transform.primaryInput;
 
     var dynamicApp = resolver.getLibraryFunction('angular.app.factory.applicationFactory');
@@ -65,6 +67,7 @@ class StaticAngularGenerator extends Transformer with ResolverTransformer {
         ? 'package:${id.package}/${id.path.substring(4)}' : id.path;
     printer.build(url);
     transform.addOutput(new Asset.fromString(id, printer.text));
+    prevTag.makeCurrent();
   }
 }
 

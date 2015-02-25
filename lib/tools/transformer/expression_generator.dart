@@ -1,5 +1,6 @@
 library angular.tools.transformer.expression_generator;
 
+import 'dart:profiler';
 import 'dart:async';
 import 'package:analyzer/src/generated/element.dart';
 import 'package:angular/cache/module.dart';
@@ -33,6 +34,7 @@ class ExpressionGenerator extends Transformer with ResolverTransformer {
   }
 
   Future applyResolver(Transform transform, Resolver resolver) {
+    var prevTag = new UserTag('ExpressionGenerator.applyResolver').makeCurrent();
     var asset = transform.primaryInput;
     var outputBuffer = new StringBuffer();
 
@@ -67,6 +69,7 @@ class ExpressionGenerator extends Transformer with ResolverTransformer {
             new Asset.fromString(outputId, outputBuffer.toString()));
 
       transform.addOutput(asset);
+      prevTag.makeCurrent();
     });
   }
 
