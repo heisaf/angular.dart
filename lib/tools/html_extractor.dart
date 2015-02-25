@@ -1,5 +1,6 @@
 library angular.html_parser;
 
+import 'dart:profiler';
 import 'package:html5lib/parser.dart';
 import 'package:html5lib/dom.dart';
 
@@ -34,6 +35,7 @@ class HtmlExpressionExtractor {
   }
 
   void parseHtml(String html) {
+    var prevTag = new UserTag('HtmlExpressionExtractor.parseHtml').makeCurrent();
     var document = parse(html);
     visitNodes([document], (Node node) {
       if (matchesNode(node, r'[*=/{{.*}}/]')) {
@@ -63,6 +65,7 @@ class HtmlExpressionExtractor {
         }
       }
     });
+    prevTag.makeCurrent();
   }
 
   visitNodes(List<Node> nodes, NodeVisitor visitor) {

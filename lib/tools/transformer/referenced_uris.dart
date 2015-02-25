@@ -1,5 +1,6 @@
 library angular.tools.transformers.referenced_uris;
 
+import 'dart:profiler';
 import 'dart:async';
 
 import 'package:analyzer/src/generated/ast.dart';
@@ -48,6 +49,7 @@ class _Processor {
   /// Gathers the contents of all URIs which are to be cached.
   /// Returns a map from URI to contents.
   Future<Map<String, String>> process() {
+    var prevTag = new UserTag('_Processor.process').makeCurrent();
     var cacheAnnotationType = resolver.getType(cacheAnnotationName);
     if (cacheAnnotationType != null &&
         cacheAnnotationType.unnamedConstructor != null) {
@@ -95,6 +97,7 @@ class _Processor {
 
         uriToContents[entry.uri] = entry.contents;
       }
+      prevTag.makeCurrent();
       return uriToContents;
     });
   }
