@@ -8,6 +8,8 @@ dependencies:
   web_components: any
 
 transformers:
+- angular_dart_example:
+    generate: '20'
 - angular:
     html_files:
       - web/bouncing_balls_tpl.html
