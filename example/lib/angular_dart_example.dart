@@ -1,72 +1,167 @@
 import 'package:barback/barback.dart';
 import 'dart:async';
 
-String _newListItem(int i) => '<li><a href="todo$i.html">todo$i.html</a></li>';
-String _newTodoLib(int i) => '''
-library todo$i;
-import 'dart:html';
+const int _defaultGenerate = 2;
 
-import 'package:angular/angular.dart';
-import 'package:angular/application_factory.dart';
-import 'package:angular/playback/playback_http.dart';
-import 'todo.dart';
+const _COMP_BINDING = '''
+  module
+    ..bind(Todo)
+    ..bind(Todo2);
+''';
 
-main() {
-  print(window.location.search);
-  var module = new Module()..bind(PlaybackHttpBackendConfig);
-
-  // If these is a query in the URL, use the server-backed
-  // TodoController.  Otherwise, use the stored-data controller.
-  var query = window.location.search;
-  module.bind(Server, toImplementation: NoOpServer);
-
-  applicationFactory()
-      .addModule(module)
-      .rootContextType(Todo)
-      .run();
+String newTodoComponent(int i) => '''
+@Component(
+  selector: 'todo$i',
+  useShadowDom: false,
+  templateUrl: 'packages/angular_dart_example/todo/todo_component.html'
+)
+class Todo$i extends Todo {
+  Todo$i(Server serverController) : super(serverController);
 }
 ''';
 
-const int _defaultGenerate = 10;
+String _newRoute(int i) => ''',
+    'todo$i' : ngRoute(
+      path : '/todo$i',
+      viewHtml : '<todo$i comp-id="$i"></todo$i>'
+    )
+''';
 
-class TodoGenerator implements Transformer {
+String _newRoutingInitializer(buf) => '''
+void routeInitializer(Router router, RouteViewFactory views) {
+  views.configure({
+    'default': ngRoute(
+      defaultRoute: true,
+      enter: (RouteEnterEvent e) {
+        router.go('todo1', {});
+      }
+    ),
+    'todo1' : ngRoute(
+      path : '/todo1',
+      viewHtml : '<todo1 comp-id="1"></todo1>'
+    ),
+    'todo2' : ngRoute(
+      path : '/todo2',
+      viewHtml : '<todo2 comp-id="2"></todo2>'
+    )$buf
+  });
+}
+''';
 
-   int generate;
+const _COMP_ROUTING = '''
+void routeInitializer(Router router, RouteViewFactory views) {
+  views.configure({
+    'default': ngRoute(
+      defaultRoute: true,
+      enter: (RouteEnterEvent e) {
+        router.go('todo1', {});
+      }
+    ),
+    'todo1' : ngRoute(
+      path : '/todo1',
+      viewHtml : '<todo1 comp-id="1"></todo1>'
+    ),
+    'todo2' : ngRoute(
+      path : '/todo2',
+      viewHtml : '<todo2 comp-id="2"></todo2>'
+    )
+  });
+}
+''';
 
-  TodoGenerator.asPlugin(BarbackSettings settings) {
+const _COMP_LIST_INIT = 'final List<int> items =  new List.generate(2, (i) => ++i);';
+
+String _newListGenerator(int i) => 'final List<int> items =  new List.generate($i, (i) => ++i);';
+
+class ExampleTransformerGroup implements TransformerGroup {
+
+  final Iterable<Iterable> phases;
+
+  static List<List<Transformer>> _createPhases(BarbackSettings settings) {
     int parsed = int.parse(settings.configuration['generate'], onError: (String source) => _defaultGenerate);
-    generate = parsed == null ? _defaultGenerate : parsed;
+    var generate = parsed == null ? _defaultGenerate : parsed;
+
+    return [
+      [new TodoBindingGenerator(generate)],
+      [new TodoCompGenerator(generate)]
+    ];
   }
+
+  ExampleTransformerGroup.asPlugin(BarbackSettings settings) :
+    phases = _createPhases(settings);
+}
+
+class TodoCompGenerator implements Transformer {
+  final int generate;
+  TodoCompGenerator(this.generate);
 
   apply(Transform transform) {
     var id = transform.primaryInput.id;
+
+    if (generate <= 2) {
+      transform
+        ..logger.info('nothing to generate', asset: id)
+        ..addOutput(transform.primaryInput);
+      return new Future.value(true);
+    }
+
     return transform.readInputAsString(id).then((String content) {
-      var buf = new StringBuffer();
-      for (var i = 1; i <= generate; i++) {
-        buf
+      transform.logger.info('Generating $generate todo components', asset: id);
+      var compDeclaration = new StringBuffer();
+      for (var i = _defaultGenerate + 1; i <= generate; i++) {
+        compDeclaration
           ..write('\n')
-          ..write(_newListItem(i));
+          ..write(newTodoComponent(i));
       }
-
-      var todoHtmlId = new AssetId(id.package, 'web/todo.html');
-      return transform.readInputAsString(todoHtmlId).then((todoHtml) {
-        transform.logger.info('Generating $generate todo views', asset: id);
-        for (var i = 1; i <= generate; i++) {
-          var newTodoHtmlId = new AssetId(id.package, 'web/todo$i.html');
-          transform
-            ..logger.info(' -> $newTodoHtmlId')
-            ..addOutput(new Asset.fromString(new AssetId(id.package, 'web/todo$i.dart'), _newTodoLib(i)))
-            ..addOutput(new Asset.fromString(newTodoHtmlId, todoHtml.replaceAll('todo.dart', 'todo$i.dart')));
-        }
-        var transformed = content.replaceFirst('</ul>', '$buf</ul>');
-        transform.addOutput(new Asset.fromString(id, transformed));
-      });
-
+      var transformed = content + compDeclaration.toString();
+      transform.addOutput(new Asset.fromString(id, transformed));
     });
   }
 
-  String get allowedExtensions => ".html";
+  String get allowedExtensions => ".dart";
 
-  Future<bool> isPrimary(AssetId id) => new Future.value(id.path.contains('index'));
+  Future<bool> isPrimary(AssetId id) => new Future.value(id.path.endsWith('comp2.dart'));
+}
+
+class TodoBindingGenerator implements Transformer {
+
+  final int generate;
+  TodoBindingGenerator(this.generate);
+
+  apply(Transform transform) {
+    var id = transform.primaryInput.id;
+
+    if (generate <= 2) {
+      transform
+        ..logger.info('nothing to generate', asset: id)
+        ..addOutput(transform.primaryInput);
+      return new Future.value(true);
+    }
+
+    return transform.readInputAsString(id).then((String content) {
+      transform.logger.info('Generating $generate todo bindings', asset: id);
+      var compBinding = new StringBuffer(_COMP_BINDING.replaceAll(';\n', ''));
+      var routes = new StringBuffer();
+
+      for (var i = _defaultGenerate + 1; i <= generate; i++) {
+        compBinding
+          ..write('\n')
+          ..write('    ..bind(Todo$i)');
+        routes.write(_newRoute(i));
+      }
+      compBinding.writeln(';');
+
+      var transformed = content
+        .replaceAll(_COMP_BINDING, compBinding.toString())
+        .replaceAll(_COMP_LIST_INIT, _newListGenerator(generate))
+        .replaceAll(_COMP_ROUTING, _newRoutingInitializer(routes));
+//      transform.logger.info('transformed\n$transformed', asset: id);
+      transform.addOutput(new Asset.fromString(id, transformed));
+    });
+  }
+
+  String get allowedExtensions => ".dart";
+
+  Future<bool> isPrimary(AssetId id) => new Future.value(id.path.endsWith('todo.dart'));
 }
 
